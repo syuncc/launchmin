@@ -1,0 +1,21 @@
+{
+	"name": "@launchmin/api",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "tsx watch --env-file .env src/server.ts",
+		"build": "tsc",
+		"start": "node --env-file .env dist/server.js",
+		"lint": "biome check .",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@types/node": "^25.5.0",
+		"tsx": "^4.21.0",
+		"typescript": "^6.0.2"
+	},
+	"dependencies": {
+		"@hono/node-server": "^1.19.12",
+		"hono": "^4.12.10"
+	}
+}

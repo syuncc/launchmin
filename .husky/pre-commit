@@ -1,0 +1,3 @@
+npx biome check --staged --no-errors-on-unmatched
+cd client && npx tsc --noEmit
+cd ../api && npx tsc --noEmit
