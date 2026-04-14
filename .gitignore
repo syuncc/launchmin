@@ -27,6 +27,9 @@ Thumbs.db
 *.log
 logs/
 
+# Temporary working files
+tmp/
+
 # Coverage
 coverage/
 
