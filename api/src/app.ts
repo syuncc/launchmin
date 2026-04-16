@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 import { secureHeaders } from "hono/secure-headers";
 import router from "./router.js";
+import { error } from "./utils/response.js";
 
 const app = new Hono();
 
@@ -20,6 +21,11 @@ app.use(
 		credentials: true,
 	}),
 );
+
+app.onError((err, c) => {
+	console.error(err);
+	return error(c, 500, "Internal server error", "INTERNAL_ERROR");
+});
 
 const API_BASE = process.env.API_BASE || "/api";
 app.route(API_BASE, router);
