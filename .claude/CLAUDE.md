@@ -8,7 +8,7 @@
 - Clarify requirements before making changes — if requirements are unclear, ask me questions first, NEVER proceed with vague assumptions
 - Read related source files and understand the context before modifying existing code
 - Small steps — focus on one concern at a time, keep each change within a single component or module boundary
-- After completing changes, run `git diff` to review all modified code before moving on
+- After every code change: first review the modified code for security, correctness, edge cases, and convention adherence until satisfied, then run `npx biome check --write .` and `npx tsc --noEmit` in the affected directory
 - NEVER install new npm packages without asking me first
 
 ## Testing
