@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { accountField, emailField, passwordField } from "./atoms.js";
+import { accountField, passwordField, usernameField } from "./atoms.js";
 
 // Input for user registration.
 // Consumers: POST /api/users (server), sign-up form (client).
 export const userRegisterInput = z.object({
-	email: emailField,
+	username: usernameField,
 	password: passwordField,
 });
 export type UserRegisterInput = z.infer<typeof userRegisterInput>;

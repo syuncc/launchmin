@@ -5,18 +5,18 @@ import { toDomain, type User } from "./users.model.js";
 import * as repo from "./users.repository.js";
 
 export async function register(input: UserRegisterInput): Promise<User> {
-	const existing = await repo.findByEmail(input.email);
+	const existing = await repo.findByUsername(input.username);
 	if (existing) {
 		throw new AppError(
 			409,
 			ERROR_CODES.DUPLICATE_RESOURCE,
-			"Email already registered",
+			"Username already taken",
 		);
 	}
 
 	const now = new Date();
 	const doc = await repo.insert({
-		email: input.email,
+		username: input.username,
 		passwordHash: await hashPassword(input.password),
 		createdAt: now,
 		updatedAt: now,

@@ -5,8 +5,10 @@ import type { UserDocument } from "./users.model.js";
 const col = (): Collection<UserDocument> =>
 	getDb().collection<UserDocument>("users");
 
-export async function findByEmail(email: string): Promise<UserDocument | null> {
-	return col().findOne({ email });
+export async function findByUsername(
+	username: string,
+): Promise<UserDocument | null> {
+	return col().findOne({ username });
 }
 
 export async function findById(id: string): Promise<UserDocument | null> {

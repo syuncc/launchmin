@@ -24,7 +24,7 @@ export async function login(
 	deviceInfo: string,
 ): Promise<AuthTokens> {
 	// OWASP anti-enumeration: identical timing and error for non-existent vs wrong-password.
-	const user = await userRepo.findByEmail(input.account.toLowerCase());
+	const user = await userRepo.findByUsername(input.account.toLowerCase());
 	const hashToVerify = user?.passwordHash ?? (await getDummyHash());
 	const passwordOk = await verifyPassword(input.password, hashToVerify);
 

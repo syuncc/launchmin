@@ -22,11 +22,11 @@ function cookieHeader(cookies: Record<string, string>): string {
 		.join("; ");
 }
 
-async function registerUser(email: string, password: string) {
+async function registerUser(username: string, password: string) {
 	return app.request("/api/users", {
 		method: "POST",
 		headers: jsonHeaders,
-		body: JSON.stringify({ email, password }),
+		body: JSON.stringify({ username, password }),
 	});
 }
 
@@ -43,9 +43,9 @@ async function loginUser(account: string, password: string) {
 
 describe("POST /api/auth/login", () => {
 	it("returns 200 + access token + sets rt/fp/csrf cookies on valid credentials", async () => {
-		await registerUser("alice@example.com", "passwordlongenough");
+		await registerUser("alice", "passwordlongenough");
 		const { res, body, cookies } = await loginUser(
-			"alice@example.com",
+			"alice",
 			"passwordlongenough",
 		);
 
@@ -60,11 +60,8 @@ describe("POST /api/auth/login", () => {
 	});
 
 	it("returns 401 with generic message on wrong password", async () => {
-		await registerUser("wrong@example.com", "passwordlongenough");
-		const { res, body } = await loginUser(
-			"wrong@example.com",
-			"thisIsTheWrongPwd",
-		);
+		await registerUser("wrongpw", "passwordlongenough");
+		const { res, body } = await loginUser("wrongpw", "thisIsTheWrongPwd");
 
 		expect(res.status).toBe(401);
 		expect(body).toMatchObject({
@@ -75,10 +72,7 @@ describe("POST /api/auth/login", () => {
 	});
 
 	it("returns 401 with same message on non-existent account (anti-enumeration)", async () => {
-		const { res, body } = await loginUser(
-			"noone@example.com",
-			"passwordlongenough",
-		);
+		const { res, body } = await loginUser("noone", "passwordlongenough");
 
 		expect(res.status).toBe(401);
 		expect(body.message).toBe("Login failed; invalid user ID or password");
@@ -96,17 +90,17 @@ describe("POST /api/auth/login", () => {
 		expect(body.error.code).toBe("VALIDATION_ERROR");
 	});
 
-	it("accepts uppercase email (normalized at register, lowercased at lookup)", async () => {
-		await registerUser("MiXeD@Example.com", "passwordlongenough");
-		const { res } = await loginUser("mixed@example.com", "passwordlongenough");
+	it("accepts uppercase username at login (lowercased on lookup)", async () => {
+		await registerUser("mixed", "passwordlongenough");
+		const { res } = await loginUser("MIXED", "passwordlongenough");
 		expect(res.status).toBe(200);
 	});
 });
 
 describe("POST /api/auth/refresh", () => {
 	async function setupLogin() {
-		await registerUser("bob@example.com", "passwordlongenough");
-		return loginUser("bob@example.com", "passwordlongenough");
+		await registerUser("bob", "passwordlongenough");
+		return loginUser("bob", "passwordlongenough");
 	}
 
 	it("returns 200 + new access token + rotates refresh cookie", async () => {
@@ -206,8 +200,8 @@ describe("POST /api/auth/refresh", () => {
 
 describe("POST /api/auth/logout", () => {
 	async function setupLogin() {
-		await registerUser("carol@example.com", "passwordlongenough");
-		return loginUser("carol@example.com", "passwordlongenough");
+		await registerUser("carol", "passwordlongenough");
+		return loginUser("carol", "passwordlongenough");
 	}
 
 	it("revokes RT family and denylists the access token", async () => {
@@ -260,8 +254,8 @@ describe("POST /api/auth/logout", () => {
 
 describe("GET /api/users/me (requireAuth middleware)", () => {
 	async function setupLogin() {
-		await registerUser("dave@example.com", "passwordlongenough");
-		return loginUser("dave@example.com", "passwordlongenough");
+		await registerUser("dave", "passwordlongenough");
+		return loginUser("dave", "passwordlongenough");
 	}
 
 	it("returns 200 + user profile with valid token + fingerprint", async () => {
@@ -278,7 +272,7 @@ describe("GET /api/users/me (requireAuth middleware)", () => {
 
 		expect(res.status).toBe(200);
 		const body = await res.json();
-		expect(body.data.email).toBe("dave@example.com");
+		expect(body.data.username).toBe("dave");
 		expect(body.data).not.toHaveProperty("passwordHash");
 	});
 

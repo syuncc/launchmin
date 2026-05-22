@@ -5,7 +5,7 @@ import { getDb } from "./db.js";
 export async function ensureIndexes(): Promise<void> {
 	const db = getDb();
 
-	await db.collection("users").createIndex({ email: 1 }, { unique: true });
+	await db.collection("users").createIndex({ username: 1 }, { unique: true });
 
 	await db
 		.collection("refresh_tokens")
