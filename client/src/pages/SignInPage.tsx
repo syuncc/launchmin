@@ -13,6 +13,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import { isAxiosError } from "axios";
 import { type KeyboardEvent, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -70,8 +71,14 @@ function SignInPage() {
 			const session = await login(data);
 			setTokens(session.accessToken, session.expiresIn);
 			navigate("/dashboard", { replace: true });
-		} catch {
-			setServerError(t("signIn.errorGeneric"));
+		} catch (err) {
+			// Surface rate-limit distinctly; everything else (401, network, 5xx) stays
+			// generic so we don't help account enumeration via response differences.
+			if (isAxiosError(err) && err.response?.status === 429) {
+				setServerError(t("signIn.errorRateLimit"));
+			} else {
+				setServerError(t("signIn.errorGeneric"));
+			}
 		}
 	});
 
