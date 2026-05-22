@@ -13,7 +13,7 @@ async function post(body: unknown) {
 }
 
 describe("POST /api/users", () => {
-	it("registers a new user with valid input", async () => {
+	it("registers a new user with valid input and default role 'user'", async () => {
 		const res = await post({
 			username: "alice",
 			password: "passwordlongenough",
@@ -23,7 +23,7 @@ describe("POST /api/users", () => {
 		const body = await res.json();
 		expect(body).toMatchObject({
 			success: true,
-			data: { username: "alice" },
+			data: { username: "alice", role: "user" },
 		});
 		// Sensitive field must not leak.
 		expect(body.data).not.toHaveProperty("passwordHash");

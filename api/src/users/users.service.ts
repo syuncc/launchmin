@@ -18,6 +18,7 @@ export async function register(input: UserRegisterInput): Promise<User> {
 	const doc = await repo.insert({
 		username: input.username,
 		passwordHash: await hashPassword(input.password),
+		role: "user",
 		createdAt: now,
 		updatedAt: now,
 	});

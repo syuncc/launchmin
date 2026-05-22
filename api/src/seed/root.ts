@@ -24,6 +24,7 @@ export async function ensureRootUser(): Promise<void> {
 		await repo.insert({
 			username: ROOT_USERNAME,
 			passwordHash: await hashPassword(ROOT_PASSWORD),
+			role: "admin",
 			createdAt: now,
 			updatedAt: now,
 		});

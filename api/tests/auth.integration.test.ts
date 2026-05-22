@@ -273,6 +273,7 @@ describe("GET /api/users/me (requireAuth middleware)", () => {
 		expect(res.status).toBe(200);
 		const body = await res.json();
 		expect(body.data.username).toBe("dave");
+		expect(body.data.role).toBe("user");
 		expect(body.data).not.toHaveProperty("passwordHash");
 	});
 
