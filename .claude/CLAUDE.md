@@ -2,6 +2,33 @@
 - Package manager: **npm** — NEVER use yarn, pnpm, or other alternatives
 - Frontend: `client/`
 - Backend: `api/`
+- Shared contracts: `shared/` (npm workspace; Zod schemas + error codes + response shapes only; NO server- or browser-only deps)
+
+## Mindset
+These principles override convenience. When in doubt, prefer caution.
+
+### Think before coding
+- State assumptions explicitly. If multiple interpretations exist, list them — NEVER pick silently.
+- If a simpler approach exists, say so and push back.
+- If something is unclear, stop and ask. Hidden confusion produces wrong code.
+
+### Simplicity first
+- Write the minimum code that solves the stated problem. Nothing speculative.
+- NO features beyond what was asked. NO abstractions for single-use code.
+- NO "flexibility" or "configurability" that wasn't requested.
+- NO error handling for impossible scenarios.
+- If a senior engineer would call it overcomplicated, rewrite it.
+
+### Surgical changes
+- Touch only what the task requires. Every changed line must trace directly to the request.
+- Do NOT "improve" adjacent code, comments, or formatting.
+- Do NOT refactor things that aren't broken. Match existing style even if you'd write it differently.
+- Remove imports/variables YOUR changes orphaned. Do NOT delete pre-existing dead code — mention it instead.
+
+### Goal-driven execution
+- Before coding, define a verifiable success criterion (a test passes, a command exits 0, a specific output appears).
+- For multi-step work, state a brief plan with a `verify:` check per step.
+- Weak criteria like "make it work" force re-clarification mid-task. Strong criteria let you self-verify.
 
 ## Work Method
 - All code comments, commit messages, and documentation must be in English

@@ -1,5 +1,10 @@
 {
 	"private": true,
+	"workspaces": [
+		"api",
+		"client",
+		"shared"
+	],
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.10",
 		"husky": "^9.1.7"

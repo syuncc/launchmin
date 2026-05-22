@@ -12,6 +12,7 @@
 - Controller responsibility: parse request → call service → send response
 - Business logic belongs in `services/`, NEVER in controllers or routes
 - All input MUST be validated with a schema before reaching controller logic
+- HTTP request/response Zod schemas MUST live in `@launchmin/shared`, NEVER in `api/src/<module>/`. Module-local Zod is only allowed for internal-use schemas that never cross HTTP boundaries
 
 ## Error Handling
 - Custom error class extends built-in Error with statusCode and error code
