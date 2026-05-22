@@ -115,13 +115,13 @@ function SignInPage() {
 			>
 				<CardContent sx={{ p: { xs: 3, sm: 5 } }}>
 					<Stack spacing={4}>
-						<Stack spacing={2.5}>
-							<Stack direction="row" spacing={1.5} alignItems="center">
+						<Stack spacing={3}>
+							<Stack spacing={1.5}>
 								<Box
 									component="img"
 									src="/logo.svg"
 									alt=""
-									sx={{ width: 32, height: 32 }}
+									sx={{ width: 48, height: 48 }}
 								/>
 								<Typography
 									variant="h6"
