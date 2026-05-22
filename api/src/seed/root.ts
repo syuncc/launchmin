@@ -25,6 +25,9 @@ export async function ensureRootUser(): Promise<void> {
 			username: ROOT_USERNAME,
 			passwordHash: await hashPassword(ROOT_PASSWORD),
 			role: "admin",
+			failedLoginCount: 0,
+			lockedUntil: null,
+			lastFailedLoginAt: null,
 			createdAt: now,
 			updatedAt: now,
 		});

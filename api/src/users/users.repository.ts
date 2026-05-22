@@ -23,3 +23,47 @@ export async function insert(
 	await col().insertOne({ ...doc, _id });
 	return { ...doc, _id };
 }
+
+// Increments the failure counter; on reaching maxAttempts, sets lockedUntil
+// and resets the counter (so the user does not re-lock immediately after unlock).
+// Two operations rather than one aggregation update — small race window where two
+// concurrent failures past the threshold both write lockedUntil. Idempotent value;
+// acceptable for v1.
+export async function recordFailedLogin(
+	userId: ObjectId,
+	maxAttempts: number,
+	lockoutDurationMs: number,
+): Promise<void> {
+	const updated = await col().findOneAndUpdate(
+		{ _id: userId },
+		{
+			$inc: { failedLoginCount: 1 },
+			$set: { lastFailedLoginAt: new Date() },
+		},
+		{ returnDocument: "after" },
+	);
+	if (updated && updated.failedLoginCount >= maxAttempts) {
+		await col().updateOne(
+			{ _id: userId },
+			{
+				$set: {
+					lockedUntil: new Date(Date.now() + lockoutDurationMs),
+					failedLoginCount: 0,
+				},
+			},
+		);
+	}
+}
+
+export async function resetLoginState(userId: ObjectId): Promise<void> {
+	await col().updateOne(
+		{ _id: userId },
+		{
+			$set: {
+				failedLoginCount: 0,
+				lockedUntil: null,
+				lastFailedLoginAt: null,
+			},
+		},
+	);
+}

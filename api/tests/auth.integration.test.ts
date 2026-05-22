@@ -252,6 +252,74 @@ describe("POST /api/auth/logout", () => {
 	});
 });
 
+describe("Account lockout", () => {
+	async function attemptLogin(account: string, password: string) {
+		return app.request("/api/auth/login", {
+			method: "POST",
+			headers: jsonHeaders,
+			body: JSON.stringify({ account, password }),
+		});
+	}
+
+	it("locks account after 5 consecutive failed login attempts", async () => {
+		await registerUser("locktest", "correctpasswordlongenough");
+
+		for (let i = 0; i < 5; i++) {
+			const res = await attemptLogin("locktest", "wrong-password-here");
+			expect(res.status).toBe(401);
+		}
+
+		// Correct password is now also rejected — account is locked.
+		const res = await attemptLogin("locktest", "correctpasswordlongenough");
+		expect(res.status).toBe(401);
+		const body = await res.json();
+		// Anti-enumeration: same generic message even when locked.
+		expect(body.message).toBe("Login failed; invalid user ID or password");
+	});
+
+	it("resets failure counter on a successful login", async () => {
+		await registerUser("resettest", "correctpasswordlongenough");
+
+		// 4 failed attempts (one below threshold).
+		for (let i = 0; i < 4; i++) {
+			expect((await attemptLogin("resettest", "wrong-password")).status).toBe(
+				401,
+			);
+		}
+
+		// Successful login resets the counter.
+		expect(
+			(await attemptLogin("resettest", "correctpasswordlongenough")).status,
+		).toBe(200);
+
+		// 4 more failures should NOT lock (counter was reset).
+		for (let i = 0; i < 4; i++) {
+			expect((await attemptLogin("resettest", "wrong-password")).status).toBe(
+				401,
+			);
+		}
+
+		// Still able to login.
+		expect(
+			(await attemptLogin("resettest", "correctpasswordlongenough")).status,
+		).toBe(200);
+	});
+
+	it("does not lock non-existent accounts", async () => {
+		// Many tries against a username that does not exist.
+		for (let i = 0; i < 10; i++) {
+			expect(
+				(await attemptLogin("nobody-here", "anything-at-all")).status,
+			).toBe(401);
+		}
+		// Registering the same username after the attack — should not be pre-locked.
+		await registerUser("nobody-here", "newpasswordlongenough");
+		expect(
+			(await attemptLogin("nobody-here", "newpasswordlongenough")).status,
+		).toBe(200);
+	});
+});
+
 describe("GET /api/users/me (requireAuth middleware)", () => {
 	async function setupLogin() {
 		await registerUser("dave", "passwordlongenough");

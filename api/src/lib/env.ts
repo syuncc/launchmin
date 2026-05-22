@@ -23,6 +23,18 @@ const envSchema = z.object({
 
 	// HMAC key for CSRF token signing. Same length requirement as JWT_SECRET.
 	CSRF_SECRET: z.string().min(32),
+
+	// Brute-force prevention on /auth/login.
+	// Rate limit is per-IP (in-memory). Account lockout is per-account (DB-backed,
+	// see auth.service). The two layers complement each other: rate limit slows
+	// down volume from a single IP; lockout protects a single account from being
+	// hammered across many IPs.
+	LOGIN_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
+	LOGIN_RATE_LIMIT_WINDOW_MS: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(15 * 60 * 1000),
 });
 
 export type Env = z.infer<typeof envSchema>;

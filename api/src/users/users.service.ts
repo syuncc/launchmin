@@ -19,6 +19,9 @@ export async function register(input: UserRegisterInput): Promise<User> {
 		username: input.username,
 		passwordHash: await hashPassword(input.password),
 		role: "user",
+		failedLoginCount: 0,
+		lockedUntil: null,
+		lastFailedLoginAt: null,
 		createdAt: now,
 		updatedAt: now,
 	});

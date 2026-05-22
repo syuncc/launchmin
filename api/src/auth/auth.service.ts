@@ -19,16 +19,21 @@ export interface AuthTokens {
 	csrfToken: string;
 }
 
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
+
 export async function login(
 	input: UserLoginInput,
 	deviceInfo: string,
 ): Promise<AuthTokens> {
-	// OWASP anti-enumeration: identical timing and error for non-existent vs wrong-password.
+	// OWASP anti-enumeration: identical timing and error for non-existent vs
+	// wrong-password vs locked-account.
 	const user = await userRepo.findByUsername(input.account.toLowerCase());
-	const hashToVerify = user?.passwordHash ?? (await getDummyHash());
-	const passwordOk = await verifyPassword(input.password, hashToVerify);
 
-	if (!user || !passwordOk) {
+	// Lockout gate — runs before password verification so a valid password
+	// against a locked account still fails.
+	if (user?.lockedUntil && user.lockedUntil > new Date()) {
+		await verifyPassword(input.password, await getDummyHash());
 		throw new AppError(
 			401,
 			ERROR_CODES.UNAUTHORIZED,
@@ -36,6 +41,27 @@ export async function login(
 		);
 	}
 
+	const hashToVerify = user?.passwordHash ?? (await getDummyHash());
+	const passwordOk = await verifyPassword(input.password, hashToVerify);
+
+	if (!user || !passwordOk) {
+		// Lock only real accounts. Tracking failures against non-existent
+		// usernames would tip off enumeration and is pointless anyway.
+		if (user) {
+			await userRepo.recordFailedLogin(
+				user._id,
+				MAX_FAILED_ATTEMPTS,
+				LOCKOUT_DURATION_MS,
+			);
+		}
+		throw new AppError(
+			401,
+			ERROR_CODES.UNAUTHORIZED,
+			"Login failed; invalid user ID or password",
+		);
+	}
+
+	await userRepo.resetLoginState(user._id);
 	return issueTokens(user._id, new ObjectId(), deviceInfo);
 }
 

@@ -10,6 +10,10 @@ export interface UserDocument {
 	username: string;
 	passwordHash: string;
 	role: UserRole;
+	// Brute-force prevention state. Operational — never exposed via the User domain.
+	failedLoginCount: number;
+	lockedUntil: Date | null;
+	lastFailedLoginAt: Date | null;
 	createdAt: Date;
 	updatedAt: Date;
 }
