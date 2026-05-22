@@ -22,8 +22,12 @@ i18n
 	.init({
 		resources,
 		fallbackLng: "en",
-		supportedLngs: SUPPORTED_LANGUAGES,
-		nonExplicitSupportedLngs: true,
+		supportedLngs: [...SUPPORTED_LANGUAGES],
+		// load: "currentOnly" prevents i18next from also trying "zh" (the language
+		// part of "zh-CN") when zh-CN is the detected code. We do not ship a "zh"
+		// namespace, and with the default load: "all" + nonExplicitSupportedLngs,
+		// some edge cases caused the detected zh-CN to silently downgrade to "en".
+		load: "currentOnly",
 		ns: ["auth", "zod"],
 		interpolation: { escapeValue: false },
 		returnNull: false,
@@ -39,5 +43,14 @@ i18n
 			caches: ["localStorage", "cookie"],
 		},
 	});
+
+// Dev-only: expose the i18n instance on window for runtime inspection.
+//   window.i18n.language
+//   window.i18n.resolvedLanguage
+//   window.i18n.options.supportedLngs
+//   window.i18n.t("signIn.title", { ns: "auth" })
+if (import.meta.env.DEV) {
+	(globalThis as unknown as { i18n: typeof i18n }).i18n = i18n;
+}
 
 export default i18n;
