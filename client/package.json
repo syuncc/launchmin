@@ -13,11 +13,20 @@
 		"@emotion/react": "^11.14.0",
 		"@emotion/styled": "^11.14.1",
 		"@fontsource-variable/inter": "^5.2.8",
+		"@hookform/resolvers": "^3.10.0",
+		"@launchmin/shared": "*",
 		"@mui/icons-material": "^7.3.9",
 		"@mui/material": "^7.3.9",
+		"axios": "^1.7.0",
+		"i18next": "^26.2.0",
+		"i18next-browser-languagedetector": "^8.2.1",
 		"react": "^19.2.4",
 		"react-dom": "^19.2.4",
-		"react-router": "^7.13.2"
+		"react-hook-form": "^7.54.0",
+		"react-i18next": "^17.0.8",
+		"react-router": "^7.13.2",
+		"zod": "^3.24.0",
+		"zustand": "^5.0.0"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.29.0",

@@ -4,6 +4,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router";
+import "./i18n";
 import routes from "./routes";
 import theme from "./theme";
 

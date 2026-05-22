@@ -1,0 +1,183 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { type UserLoginInput, userLoginInput } from "@launchmin/shared";
+import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import CircularProgress from "@mui/material/CircularProgress";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router";
+import { login } from "../api/auth";
+import { useAuthStore } from "../stores/auth";
+
+const MESH_LIGHT = [
+	"radial-gradient(at 15% 20%, rgb(var(--mui-palette-primary-mainChannel) / 0.08) 0px, transparent 50%)",
+	"radial-gradient(at 85% 25%, rgb(var(--mui-palette-secondary-mainChannel) / 0.06) 0px, transparent 50%)",
+	"radial-gradient(at 50% 90%, rgb(var(--mui-palette-info-mainChannel) / 0.08) 0px, transparent 50%)",
+].join(", ");
+
+const MESH_DARK = [
+	"radial-gradient(at 15% 20%, rgb(var(--mui-palette-primary-mainChannel) / 0.18) 0px, transparent 50%)",
+	"radial-gradient(at 85% 25%, rgb(var(--mui-palette-secondary-mainChannel) / 0.12) 0px, transparent 50%)",
+	"radial-gradient(at 50% 90%, rgb(var(--mui-palette-info-mainChannel) / 0.15) 0px, transparent 50%)",
+].join(", ");
+
+function SignInPage() {
+	const { t } = useTranslation("auth");
+	const navigate = useNavigate();
+	const setTokens = useAuthStore((s) => s.setTokens);
+	const [showPassword, setShowPassword] = useState(false);
+	const [serverError, setServerError] = useState<string | null>(null);
+
+	const {
+		register,
+		handleSubmit,
+		formState: { errors, isSubmitting },
+	} = useForm<UserLoginInput>({
+		resolver: zodResolver(userLoginInput),
+		mode: "onBlur",
+	});
+
+	const onSubmit = handleSubmit(async (data) => {
+		setServerError(null);
+		try {
+			const session = await login(data);
+			setTokens(session.accessToken, session.expiresIn);
+			navigate("/dashboard", { replace: true });
+		} catch {
+			setServerError(t("signIn.errorGeneric"));
+		}
+	});
+
+	return (
+		<Box
+			sx={(theme) => ({
+				minHeight: "100vh",
+				display: "flex",
+				alignItems: "center",
+				justifyContent: "center",
+				backgroundColor: "background.default",
+				backgroundImage: MESH_LIGHT,
+				p: { xs: 3, md: 4 },
+				...theme.applyStyles("dark", {
+					backgroundImage: MESH_DARK,
+				}),
+			})}
+		>
+			<Card
+				variant="outlined"
+				sx={(theme) => ({
+					width: "100%",
+					maxWidth: 440,
+					borderRadius: 2,
+					boxShadow:
+						"0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px -8px rgba(15, 23, 42, 0.08)",
+					...theme.applyStyles("dark", {
+						boxShadow:
+							"0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -8px rgba(0, 0, 0, 0.6)",
+					}),
+				})}
+			>
+				<CardContent sx={{ p: { xs: 3, sm: 5 } }}>
+					<Stack spacing={4}>
+						<Stack spacing={2.5}>
+							<Stack direction="row" spacing={1.5} alignItems="center">
+								<Box
+									component="img"
+									src="/logo.svg"
+									alt=""
+									sx={{ width: 32, height: 32 }}
+								/>
+								<Typography
+									variant="h6"
+									fontWeight={600}
+									sx={{ letterSpacing: "-0.01em" }}
+								>
+									Launchmin
+								</Typography>
+							</Stack>
+							<Typography variant="h4" fontWeight={600}>
+								{t("signIn.title")}
+							</Typography>
+						</Stack>
+
+						<Stack component="form" spacing={3} onSubmit={onSubmit} noValidate>
+							<Stack spacing={2}>
+								{serverError && <Alert severity="error">{serverError}</Alert>}
+
+								<TextField
+									label={t("signIn.accountLabel")}
+									fullWidth
+									autoComplete="username"
+									autoFocus
+									error={!!errors.account}
+									helperText={errors.account?.message}
+									{...register("account")}
+								/>
+								<TextField
+									label={t("signIn.passwordLabel")}
+									type={showPassword ? "text" : "password"}
+									fullWidth
+									autoComplete="current-password"
+									error={!!errors.password}
+									helperText={errors.password?.message}
+									{...register("password")}
+									slotProps={{
+										input: {
+											endAdornment: (
+												<InputAdornment position="end">
+													<IconButton
+														aria-label={
+															showPassword
+																? t("signIn.hidePassword")
+																: t("signIn.showPassword")
+														}
+														onClick={() => setShowPassword((v) => !v)}
+														edge="end"
+														size="small"
+													>
+														{showPassword ? (
+															<VisibilityOffOutlinedIcon fontSize="small" />
+														) : (
+															<VisibilityOutlinedIcon fontSize="small" />
+														)}
+													</IconButton>
+												</InputAdornment>
+											),
+										},
+									}}
+								/>
+							</Stack>
+							<Button
+								type="submit"
+								variant="contained"
+								size="large"
+								fullWidth
+								disabled={isSubmitting}
+								startIcon={
+									isSubmitting ? (
+										<CircularProgress size={16} color="inherit" />
+									) : undefined
+								}
+							>
+								{t("signIn.submit")}
+							</Button>
+						</Stack>
+					</Stack>
+				</CardContent>
+			</Card>
+		</Box>
+	);
+}
+
+export default SignInPage;
