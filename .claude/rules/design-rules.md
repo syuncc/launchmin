@@ -93,7 +93,7 @@ Everything else uses MUI defaults as-is.
 **Forms:**
 - Default: `size="small"`, `variant="outlined"` on all inputs
 - Mobile: use default `size` to meet 44px touch target
-- Validation: `mode: 'onBlur'` — not on every keystroke
+- Validation: `mode: 'onTouched'` — first validation on blur (not on every keystroke), then re-validate on change so users see errors clear as they fix them. Plain `'onBlur'` strands errors until the next blur and is not what we want.
 - Exception: password confirmation and real-time fields may use `onChange`
 - Error message: always via `helperText` prop, never floating toast
 
@@ -201,7 +201,7 @@ Prefer **Outlined** variants over filled for lighter visual weight.
 - ❌ Use `palette.mode === 'dark'` checks — use `theme.applyStyles('dark', {...})`
 - ❌ Use arbitrary spacing like `padding: '13px'` — use `theme.spacing()`
 - ❌ Use font size below 12px (11px allowed only for table headers and overline)
-- ❌ Show validation errors on every keystroke — use `mode: 'onBlur'`
+- ❌ Show validation errors on every keystroke before the field has been touched — use `mode: 'onTouched'`
 - ❌ Leave empty states blank — always implement with icon + title + description
 - ❌ Use any icon library other than `@mui/icons-material`
 - ❌ Write `components` overrides in `createTheme` — use MUI defaults
