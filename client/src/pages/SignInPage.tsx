@@ -58,7 +58,10 @@ function SignInPage() {
 		formState: { errors, isSubmitting },
 	} = useForm<UserLoginInput>({
 		resolver: zodResolver(userLoginInput),
-		mode: "onBlur",
+		// "onTouched" validates after the first blur and then on every change
+		// (vs "onBlur" which never re-validates as you fix the error). RHF's
+		// reValidateMode only applies after submit, so it can't replace this.
+		mode: "onTouched",
 	});
 
 	const onSubmit = handleSubmit(async (data) => {

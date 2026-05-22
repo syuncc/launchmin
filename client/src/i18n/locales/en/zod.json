@@ -1,8 +1,10 @@
 {
 	"required": "This field is required",
 	"string": {
-		"tooSmall": "Must be at least {{min}} characters",
-		"tooBig": "Must be at most {{max}} characters",
+		"tooSmall_one": "Must be at least {{count}} character",
+		"tooSmall_other": "Must be at least {{count}} characters",
+		"tooBig_one": "Must be at most {{count}} character",
+		"tooBig_other": "Must be at most {{count}} characters",
 		"invalidEmail": "Must be a valid email address",
 		"invalidFormat": "Invalid format"
 	}

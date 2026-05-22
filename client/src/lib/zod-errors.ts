@@ -8,15 +8,20 @@ export const zodErrorMap: z.ZodErrorMap = (issue, ctx) => {
 	switch (issue.code) {
 		case "too_small":
 			if (issue.type === "string") {
+				// `count` triggers i18next's plural lookup (tooSmall_one / tooSmall_other).
 				return {
-					message: i18n.t("zod:string.tooSmall", { min: issue.minimum }),
+					message: i18n.t("zod:string.tooSmall", {
+						count: Number(issue.minimum),
+					}),
 				};
 			}
 			break;
 		case "too_big":
 			if (issue.type === "string") {
 				return {
-					message: i18n.t("zod:string.tooBig", { max: issue.maximum }),
+					message: i18n.t("zod:string.tooBig", {
+						count: Number(issue.maximum),
+					}),
 				};
 			}
 			break;
