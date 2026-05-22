@@ -1,6 +1,7 @@
 import { type ServerType, serve } from "@hono/node-server";
 import app from "./app.js";
 import { connectDb, disconnectDb } from "./lib/db.js";
+import { ensureIndexes } from "./lib/indexes.js";
 
 const port = Number(process.env.PORT) || 3000;
 
@@ -9,6 +10,7 @@ let isShuttingDown = false;
 
 async function start(): Promise<void> {
 	await connectDb();
+	await ensureIndexes();
 
 	server = serve({ fetch: app.fetch, port }, () => {
 		console.log(`\n  🚀 Server running at http://localhost:${port}\n`);
