@@ -1,0 +1,5 @@
+{
+	"network": "Network error. Check your connection and try again.",
+	"server": "Something went wrong on our end. Try again later.",
+	"rateLimit": "Too many requests. Wait a few minutes and try again."
+}

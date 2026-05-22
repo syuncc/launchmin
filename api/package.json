@@ -4,19 +4,26 @@
 	"type": "module",
 	"scripts": {
 		"dev": "tsx watch --env-file .env src/server.ts",
-		"build": "tsc",
+		"build": "tsc -p tsconfig.build.json",
 		"start": "node --env-file .env dist/server.js",
 		"lint": "biome check .",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"devDependencies": {
 		"@types/node": "^25.5.0",
+		"mongodb-memory-server": "^10.1.0",
 		"tsx": "^4.21.0",
-		"typescript": "^6.0.2"
+		"typescript": "^6.0.2",
+		"vitest": "^3.0.0"
 	},
 	"dependencies": {
 		"@hono/node-server": "^1.19.13",
+		"@launchmin/shared": "*",
 		"hono": "^4.12.12",
-		"mongodb": "^7.1.1"
+		"hono-rate-limiter": "^0.5.3",
+		"mongodb": "^7.1.1",
+		"zod": "^3.24.0"
 	}
 }
