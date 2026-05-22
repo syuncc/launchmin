@@ -13,7 +13,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
+import { type KeyboardEvent, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
@@ -32,12 +32,25 @@ const MESH_DARK = [
 	"radial-gradient(at 50% 90%, rgb(var(--mui-palette-info-mainChannel) / 0.15) 0px, transparent 50%)",
 ].join(", ");
 
+// 1px hairline + soft alpha-blended box-shadow on focus instead of MUI's
+// default 2px primary outline. Reads as "deliberately designed".
+const focusRingSx = {
+	"& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
+		borderWidth: "1px",
+		borderColor: "primary.main",
+	},
+	"& .MuiOutlinedInput-root.Mui-focused": {
+		boxShadow: "0 0 0 3px rgb(var(--mui-palette-primary-mainChannel) / 0.16)",
+	},
+};
+
 function SignInPage() {
 	const { t } = useTranslation("auth");
 	const navigate = useNavigate();
 	const setTokens = useAuthStore((s) => s.setTokens);
 	const [showPassword, setShowPassword] = useState(false);
 	const [serverError, setServerError] = useState<string | null>(null);
+	const [capsLockOn, setCapsLockOn] = useState(false);
 
 	const {
 		register,
@@ -58,6 +71,15 @@ function SignInPage() {
 			setServerError(t("signIn.errorGeneric"));
 		}
 	});
+
+	const onPasswordKey = (e: KeyboardEvent<HTMLInputElement>) => {
+		setCapsLockOn(e.getModifierState("CapsLock"));
+	};
+
+	const passwordHelper =
+		errors.password?.message ??
+		(capsLockOn ? t("signIn.capsLockOn") : undefined);
+	const passwordHelperIsWarning = capsLockOn && !errors.password;
 
 	return (
 		<Box
@@ -106,14 +128,23 @@ function SignInPage() {
 									Launchmin
 								</Typography>
 							</Stack>
-							<Typography variant="h4" fontWeight={600}>
-								{t("signIn.title")}
-							</Typography>
+							<Stack spacing={0.5}>
+								<Typography variant="h4" fontWeight={600}>
+									{t("signIn.title")}
+								</Typography>
+								<Typography variant="body2" color="text.secondary">
+									{t("signIn.subtitle")}
+								</Typography>
+							</Stack>
 						</Stack>
 
 						<Stack component="form" spacing={3} onSubmit={onSubmit} noValidate>
 							<Stack spacing={2}>
-								{serverError && <Alert severity="error">{serverError}</Alert>}
+								{serverError && (
+									<Alert severity="error" onClose={() => setServerError(null)}>
+										{serverError}
+									</Alert>
+								)}
 
 								<TextField
 									label={t("signIn.accountLabel")}
@@ -122,6 +153,7 @@ function SignInPage() {
 									autoFocus
 									error={!!errors.account}
 									helperText={errors.account?.message}
+									sx={focusRingSx}
 									{...register("account")}
 								/>
 								<TextField
@@ -130,8 +162,11 @@ function SignInPage() {
 									fullWidth
 									autoComplete="current-password"
 									error={!!errors.password}
-									helperText={errors.password?.message}
+									helperText={passwordHelper}
+									sx={focusRingSx}
 									{...register("password")}
+									onKeyDown={onPasswordKey}
+									onKeyUp={onPasswordKey}
 									slotProps={{
 										input: {
 											endAdornment: (
@@ -155,6 +190,9 @@ function SignInPage() {
 												</InputAdornment>
 											),
 										},
+										formHelperText: passwordHelperIsWarning
+											? { sx: { color: "warning.main" } }
+											: undefined,
 									}}
 								/>
 							</Stack>
@@ -169,10 +207,26 @@ function SignInPage() {
 										<CircularProgress size={16} color="inherit" />
 									) : undefined
 								}
+								sx={(theme) => ({
+									transition: theme.transitions.create(
+										["transform", "box-shadow"],
+										{ duration: theme.transitions.duration.short },
+									),
+									"&:hover": { transform: "translateY(-1px)" },
+									"&:active": { transform: "translateY(0)" },
+								})}
 							>
-								{t("signIn.submit")}
+								{isSubmitting ? t("signIn.submitting") : t("signIn.submit")}
 							</Button>
 						</Stack>
+
+						<Typography
+							variant="caption"
+							color="text.secondary"
+							sx={{ textAlign: "center", display: "block" }}
+						>
+							{t("signIn.adminContact")}
+						</Typography>
 					</Stack>
 				</CardContent>
 			</Card>

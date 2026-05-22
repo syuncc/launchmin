@@ -1,0 +1,9 @@
+{
+	"required": "This field is required",
+	"string": {
+		"tooSmall": "Must be at least {{min}} characters",
+		"tooBig": "Must be at most {{max}} characters",
+		"invalidEmail": "Must be a valid email address",
+		"invalidFormat": "Invalid format"
+	}
+}
