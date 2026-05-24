@@ -24,35 +24,70 @@ export async function insert(
 	return { ...doc, _id };
 }
 
-// Increments the failure counter; on reaching maxAttempts, sets lockedUntil
-// and resets the counter (so the user does not re-lock immediately after unlock).
-// Two operations rather than one aggregation update — small race window where two
-// concurrent failures past the threshold both write lockedUntil. Idempotent value;
-// acceptable for v1.
+// Atomic single-pipeline update:
+//   1. Always increment failedLoginCount + stamp lastFailedLoginAt.
+//   2. If the incremented count >= maxAttempts AND the account is not
+//      currently locked (lockedUntil null or in the past), set lockedUntil
+//      and reset the counter so the user does not re-lock immediately
+//      after the lockout expires.
+// The not-currently-locked guard prevents continuous attack traffic from
+// pushing lockedUntil indefinitely forward (DoS amplification).
 export async function recordFailedLogin(
 	userId: ObjectId,
 	maxAttempts: number,
 	lockoutDurationMs: number,
 ): Promise<void> {
-	const updated = await col().findOneAndUpdate(
-		{ _id: userId },
+	const now = new Date();
+	const lockUntil = new Date(now.getTime() + lockoutDurationMs);
+
+	await col().updateOne({ _id: userId }, [
 		{
-			$inc: { failedLoginCount: 1 },
-			$set: { lastFailedLoginAt: new Date() },
+			$set: {
+				failedLoginCount: {
+					$add: [{ $ifNull: ["$failedLoginCount", 0] }, 1],
+				},
+				lastFailedLoginAt: now,
+			},
 		},
-		{ returnDocument: "after" },
-	);
-	if (updated && updated.failedLoginCount >= maxAttempts) {
-		await col().updateOne(
-			{ _id: userId },
-			{
-				$set: {
-					lockedUntil: new Date(Date.now() + lockoutDurationMs),
-					failedLoginCount: 0,
+		{
+			$set: {
+				lockedUntil: {
+					$cond: [
+						{
+							$and: [
+								{ $gte: ["$failedLoginCount", maxAttempts] },
+								{
+									$or: [
+										{ $eq: ["$lockedUntil", null] },
+										{ $lt: ["$lockedUntil", now] },
+									],
+								},
+							],
+						},
+						lockUntil,
+						"$lockedUntil",
+					],
+				},
+				failedLoginCount: {
+					$cond: [
+						{
+							$and: [
+								{ $gte: ["$failedLoginCount", maxAttempts] },
+								{
+									$or: [
+										{ $eq: ["$lockedUntil", null] },
+										{ $lt: ["$lockedUntil", now] },
+									],
+								},
+							],
+						},
+						0,
+						"$failedLoginCount",
+					],
 				},
 			},
-		);
-	}
+		},
+	]);
 }
 
 export async function resetLoginState(userId: ObjectId): Promise<void> {

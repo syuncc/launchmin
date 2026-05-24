@@ -1,20 +1,78 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import app from "../src/app.js";
+import {
+	cookieHeader,
+	type LoginResult,
+	login,
+	seedAdmin,
+	seedUserDirectly,
+} from "./helpers.js";
 
 const url = "/api/users";
 const jsonHeaders = { "Content-Type": "application/json" };
 
-async function post(body: unknown) {
+let adminAuth: LoginResult;
+
+beforeEach(async () => {
+	const admin = await seedAdmin();
+	adminAuth = await login(admin.username, admin.password);
+});
+
+async function postAsAdmin(body: unknown) {
 	return app.request(url, {
 		method: "POST",
-		headers: jsonHeaders,
+		headers: {
+			...jsonHeaders,
+			Authorization: `Bearer ${adminAuth.accessToken}`,
+			Cookie: cookieHeader(adminAuth.cookies),
+		},
 		body: typeof body === "string" ? body : JSON.stringify(body),
 	});
 }
 
-describe("POST /api/users", () => {
+describe("POST /api/users — admin gate", () => {
+	it("rejects request without authentication", async () => {
+		const res = await app.request(url, {
+			method: "POST",
+			headers: jsonHeaders,
+			body: JSON.stringify({
+				username: "newuser",
+				password: "passwordlongenough",
+			}),
+		});
+		expect(res.status).toBe(401);
+		const body = await res.json();
+		expect(body.error.code).toBe("UNAUTHORIZED");
+	});
+
+	it("rejects request from a non-admin authenticated user", async () => {
+		const user = await seedUserDirectly({
+			username: "regular",
+			password: "regularpasswordlong",
+		});
+		const userAuth = await login(user.username, user.password);
+
+		const res = await app.request(url, {
+			method: "POST",
+			headers: {
+				...jsonHeaders,
+				Authorization: `Bearer ${userAuth.accessToken}`,
+				Cookie: cookieHeader(userAuth.cookies),
+			},
+			body: JSON.stringify({
+				username: "newuser",
+				password: "passwordlongenough",
+			}),
+		});
+		expect(res.status).toBe(403);
+		const body = await res.json();
+		expect(body.error.code).toBe("FORBIDDEN");
+	});
+});
+
+describe("POST /api/users — as admin", () => {
 	it("registers a new user with valid input and default role 'user'", async () => {
-		const res = await post({
+		const res = await postAsAdmin({
 			username: "alice",
 			password: "passwordlongenough",
 		});
@@ -25,14 +83,12 @@ describe("POST /api/users", () => {
 			success: true,
 			data: { username: "alice", role: "user" },
 		});
-		// Sensitive field must not leak.
 		expect(body.data).not.toHaveProperty("passwordHash");
-		// ObjectId surfaces as 24-char hex string.
 		expect(body.data.id).toMatch(/^[0-9a-f]{24}$/);
 	});
 
 	it("normalizes username (lowercase + trim) on registration", async () => {
-		const res = await post({
+		const res = await postAsAdmin({
 			username: "  Alice  ",
 			password: "passwordlongenough",
 		});
@@ -47,9 +103,9 @@ describe("POST /api/users", () => {
 			username: "dup",
 			password: "passwordlongenough",
 		};
-		expect((await post(payload)).status).toBe(201);
+		expect((await postAsAdmin(payload)).status).toBe(201);
 
-		const second = await post(payload);
+		const second = await postAsAdmin(payload);
 		expect(second.status).toBe(409);
 		const body = await second.json();
 		expect(body).toMatchObject({
@@ -61,14 +117,14 @@ describe("POST /api/users", () => {
 	it("treats casing-different usernames as duplicates", async () => {
 		expect(
 			(
-				await post({
+				await postAsAdmin({
 					username: "case",
 					password: "passwordlongenough",
 				})
 			).status,
 		).toBe(201);
 
-		const second = await post({
+		const second = await postAsAdmin({
 			username: "CASE",
 			password: "passwordlongenough",
 		});
@@ -76,7 +132,7 @@ describe("POST /api/users", () => {
 	});
 
 	it("rejects password shorter than 15 chars with VALIDATION_ERROR", async () => {
-		const res = await post({
+		const res = await postAsAdmin({
 			username: "shortpw",
 			password: "tooshort",
 		});
@@ -93,7 +149,7 @@ describe("POST /api/users", () => {
 	});
 
 	it("rejects username with disallowed characters", async () => {
-		const res = await post({
+		const res = await postAsAdmin({
 			username: "has space",
 			password: "passwordlongenough",
 		});
@@ -107,7 +163,7 @@ describe("POST /api/users", () => {
 	});
 
 	it("rejects username shorter than 3 chars", async () => {
-		const res = await post({
+		const res = await postAsAdmin({
 			username: "ab",
 			password: "passwordlongenough",
 		});
@@ -118,14 +174,14 @@ describe("POST /api/users", () => {
 	});
 
 	it("rejects missing fields with VALIDATION_ERROR", async () => {
-		const res = await post({});
+		const res = await postAsAdmin({});
 		expect(res.status).toBe(400);
 		const body = await res.json();
 		expect(body.error.code).toBe("VALIDATION_ERROR");
 	});
 
 	it("rejects malformed JSON body with VALIDATION_ERROR", async () => {
-		const res = await post("not json at all");
+		const res = await postAsAdmin("not json at all");
 		expect(res.status).toBe(400);
 		const body = await res.json();
 		expect(body.error.code).toBe("VALIDATION_ERROR");

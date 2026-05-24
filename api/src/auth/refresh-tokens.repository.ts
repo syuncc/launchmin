@@ -19,20 +19,27 @@ export async function findByHash(
 	return col().findOne({ tokenHash });
 }
 
-export async function markUsedAndReplaced(
+// Atomically claim the rotation slot — only revoke if the token is still
+// active. Returns true if this caller won the race; false if it was already
+// revoked (= reuse, even if the same legitimate client raced with itself).
+export async function tryRevokeForRotation(
+	tokenHash: string,
+): Promise<boolean> {
+	const result = await col().updateOne(
+		{ tokenHash, isRevoked: false },
+		{ $set: { isRevoked: true, lastUsedAt: new Date() } },
+	);
+	return result.modifiedCount === 1;
+}
+
+// Back-pointer to the successor token. Called after tryRevokeForRotation
+// succeeds and the new RT has been issued. Pure trace info — not used by
+// security checks, so failure is non-fatal.
+export async function setReplacedBy(
 	tokenHash: string,
 	replacedByHash: string,
 ): Promise<void> {
-	await col().updateOne(
-		{ tokenHash },
-		{
-			$set: {
-				isRevoked: true,
-				replacedByHash,
-				lastUsedAt: new Date(),
-			},
-		},
-	);
+	await col().updateOne({ tokenHash }, { $set: { replacedByHash } });
 }
 
 export async function revokeFamily(familyId: ObjectId): Promise<void> {

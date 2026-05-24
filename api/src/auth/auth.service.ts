@@ -92,11 +92,21 @@ export async function refresh(
 		throw new AppError(401, ERROR_CODES.UNAUTHORIZED, "Refresh token expired");
 	}
 
+	// Atomically claim the rotation. Losing the race means another /refresh
+	// call (legitimate concurrent retry OR an attacker) already rotated this
+	// token — treat as reuse and burn the family.
+	const won = await rtRepo.tryRevokeForRotation(tokenHash);
+	if (!won) {
+		await rtRepo.revokeFamily(stored.familyId);
+		throw new AppError(
+			401,
+			ERROR_CODES.UNAUTHORIZED,
+			"Refresh token reuse detected",
+		);
+	}
+
 	const tokens = await issueTokens(stored.userId, stored.familyId, deviceInfo);
-	await rtRepo.markUsedAndReplaced(
-		tokenHash,
-		hashToken(tokens.refreshTokenRaw),
-	);
+	await rtRepo.setReplacedBy(tokenHash, hashToken(tokens.refreshTokenRaw));
 	return tokens;
 }
 
