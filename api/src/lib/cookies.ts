@@ -14,7 +14,7 @@ export function setRefreshTokenCookie(c: Context, value: string): void {
 	setCookie(c, COOKIE_RT, value, {
 		httpOnly: true,
 		secure: true,
-		sameSite: "Lax",
+		sameSite: "Strict",
 		path: "/",
 		maxAge: env().REFRESH_TOKEN_TTL,
 	});
@@ -25,7 +25,7 @@ export function setFingerprintCookie(c: Context, value: string): void {
 	setCookie(c, COOKIE_FP, value, {
 		httpOnly: true,
 		secure: true,
-		sameSite: "Lax",
+		sameSite: "Strict",
 		path: "/",
 		maxAge: env().ACCESS_TOKEN_TTL,
 	});
@@ -37,7 +37,7 @@ export function setCsrfCookie(c: Context, value: string): void {
 	setCookie(c, COOKIE_CSRF, value, {
 		httpOnly: false,
 		secure: true,
-		sameSite: "Lax",
+		sameSite: "Strict",
 		path: "/",
 		maxAge: env().REFRESH_TOKEN_TTL,
 	});

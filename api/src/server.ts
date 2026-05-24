@@ -1,6 +1,7 @@
 import { type ServerType, serve } from "@hono/node-server";
 import app from "./app.js";
 import { connectDb, disconnectDb } from "./lib/db.js";
+import { env } from "./lib/env.js";
 import { ensureIndexes } from "./lib/indexes.js";
 import { ensureRootUser } from "./seed/root.js";
 
@@ -12,7 +13,13 @@ let isShuttingDown = false;
 async function start(): Promise<void> {
 	await connectDb();
 	await ensureIndexes();
-	await ensureRootUser();
+
+	// Dev/test convenience: bootstrap root account on every startup.
+	// Production must provision the first admin some other way (CLI seed,
+	// operator-set env, etc.) — never the in-source "root/root" default.
+	if (env().NODE_ENV !== "production") {
+		await ensureRootUser();
+	}
 
 	server = serve({ fetch: app.fetch, port }, () => {
 		console.log(`\n  🚀 Server running at http://localhost:${port}\n`);

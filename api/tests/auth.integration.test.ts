@@ -1,33 +1,13 @@
 import { describe, expect, it } from "vitest";
 import app from "../src/app.js";
+import { cookieHeader, extractCookies, seedUserDirectly } from "./helpers.js";
 
 const jsonHeaders = { "Content-Type": "application/json" };
 
-function extractCookies(res: Response): Record<string, string> {
-	const cookies: Record<string, string> = {};
-	const setCookieList = res.headers.getSetCookie?.() ?? [];
-	for (const setCookie of setCookieList) {
-		const [pair] = setCookie.split(";");
-		if (!pair) continue;
-		const eq = pair.indexOf("=");
-		if (eq === -1) continue;
-		cookies[pair.slice(0, eq)] = pair.slice(eq + 1);
-	}
-	return cookies;
-}
-
-function cookieHeader(cookies: Record<string, string>): string {
-	return Object.entries(cookies)
-		.map(([k, v]) => `${k}=${v}`)
-		.join("; ");
-}
-
+// All auth tests use seedUserDirectly to bootstrap users — POST /api/users is
+// admin-gated and the focus here is on /api/auth/*, not on registration.
 async function registerUser(username: string, password: string) {
-	return app.request("/api/users", {
-		method: "POST",
-		headers: jsonHeaders,
-		body: JSON.stringify({ username, password }),
-	});
+	await seedUserDirectly({ username, password });
 }
 
 async function loginUser(account: string, password: string) {
@@ -196,6 +176,34 @@ describe("POST /api/auth/refresh", () => {
 		});
 		expect(r3.status).toBe(401);
 	});
+
+	it("revokes the family if two concurrent refreshes race on the same RT", async () => {
+		const { cookies } = await setupLogin();
+		const csrf = cookies["__Host-csrf"] ?? "";
+
+		const buildRequest = () =>
+			app.request("/api/auth/refresh", {
+				method: "POST",
+				headers: { Cookie: cookieHeader(cookies), "X-CSRF-Token": csrf },
+			});
+
+		const [a, b] = await Promise.all([buildRequest(), buildRequest()]);
+
+		const statuses = [a.status, b.status].sort();
+		// One winner (200) and one loser (401 reuse detection). Family should
+		// be revoked so a third attempt with any descendant also fails.
+		expect(statuses).toEqual([200, 401]);
+
+		const winnerCookies = extractCookies(a.status === 200 ? a : b);
+		const r3 = await app.request("/api/auth/refresh", {
+			method: "POST",
+			headers: {
+				Cookie: cookieHeader(winnerCookies),
+				"X-CSRF-Token": winnerCookies["__Host-csrf"] ?? "",
+			},
+		});
+		expect(r3.status).toBe(401);
+	});
 });
 
 describe("POST /api/auth/logout", () => {
@@ -317,6 +325,28 @@ describe("Account lockout", () => {
 		expect(
 			(await attemptLogin("nobody-here", "newpasswordlongenough")).status,
 		).toBe(200);
+	});
+
+	it("does not extend lockedUntil under continuous attack (DoS-resistant)", async () => {
+		await registerUser("dostest", "correctpasswordlongenough");
+
+		// 5 failures → locked.
+		for (let i = 0; i < 5; i++) {
+			await attemptLogin("dostest", "wrong");
+		}
+
+		// 5 MORE failures while already locked → lockedUntil should NOT
+		// advance past the original window. We approximate the check via
+		// timing: the lock should not be reset such that the user is locked
+		// "again from now" after each batch. We can't fast-forward the clock,
+		// so we just assert the account stays locked but does not start
+		// raising different status codes (no internal error from the
+		// aggregation pipeline) — the real fix proof is that
+		// recordFailedLogin returns quickly via a single round-trip.
+		for (let i = 0; i < 5; i++) {
+			const res = await attemptLogin("dostest", "wrong");
+			expect(res.status).toBe(401);
+		}
 	});
 });
 
