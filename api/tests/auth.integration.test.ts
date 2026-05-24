@@ -350,6 +350,66 @@ describe("Account lockout", () => {
 	});
 });
 
+describe("Access token security (forged tokens)", () => {
+	const TEST_SECRET = "test_jwt_secret_minimum_32_chars_for_zod_validation";
+	const b64 = (o: object) =>
+		Buffer.from(JSON.stringify(o)).toString("base64url");
+	const now = () => Math.floor(Date.now() / 1000);
+	const baseClaims = () => ({
+		iss: "launchmin-test",
+		aud: "launchmin-test-api",
+		sub: "507f1f77bcf86cd799439011",
+		jti: "fake-jti",
+		typ: "access+jwt" as const,
+		fp: "fakehash",
+		iat: now(),
+		nbf: now(),
+		exp: now() + 900,
+	});
+
+	async function get(token: string) {
+		return app.request("/api/users/me", {
+			method: "GET",
+			headers: { Authorization: `Bearer ${token}` },
+		});
+	}
+
+	it("rejects alg:none JWT (RFC 8725 §3.1)", async () => {
+		const token = `${b64({ alg: "none", typ: "access+jwt" })}.${b64(baseClaims())}.`;
+		expect((await get(token)).status).toBe(401);
+	});
+
+	it("rejects JWT signed with the wrong issuer", async () => {
+		const { sign } = await import("hono/jwt");
+		const token = await sign(
+			{ ...baseClaims(), iss: "evil-issuer" },
+			TEST_SECRET,
+			"HS256",
+		);
+		expect((await get(token)).status).toBe(401);
+	});
+
+	it("rejects JWT signed with the wrong audience", async () => {
+		const { sign } = await import("hono/jwt");
+		const token = await sign(
+			{ ...baseClaims(), aud: "evil-aud" },
+			TEST_SECRET,
+			"HS256",
+		);
+		expect((await get(token)).status).toBe(401);
+	});
+
+	it("rejects JWT signed with a different secret", async () => {
+		const { sign } = await import("hono/jwt");
+		const token = await sign(
+			baseClaims(),
+			"different_secret_at_least_32_chars_long_xx",
+			"HS256",
+		);
+		expect((await get(token)).status).toBe(401);
+	});
+});
+
 describe("GET /api/users/me (requireAuth middleware)", () => {
 	async function setupLogin() {
 		await registerUser("dave", "passwordlongenough");
