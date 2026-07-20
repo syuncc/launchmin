@@ -17,7 +17,7 @@
 		"@launchmin/shared": "*",
 		"@mui/icons-material": "^7.3.9",
 		"@mui/material": "^7.3.9",
-		"axios": "^1.7.0",
+		"axios": "^1.18.0",
 		"i18next": "^26.2.0",
 		"i18next-browser-languagedetector": "^8.2.1",
 		"react": "^19.2.4",
